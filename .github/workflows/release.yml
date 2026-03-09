@@ -21,7 +21,7 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y gcc-multilib g++-multilib libargon2-dev:i386 binutils
 
-      - name: Configure CMake (Deterministic & Anonymous)
+      - name: Configure CMake
         run: |
           mkdir build && cd build
           cmake .. \
@@ -33,7 +33,7 @@ jobs:
       - name: Build
         run: cmake --build build --config Release -j $(nproc)
 
-      - name: Strip Binary (Remove Debug Symbols)
+      - name: Strip Binary
         run: |
           strip --strip-all build/omp-argon2.so
 
@@ -55,14 +55,14 @@ jobs:
       - name: Install Argon2 via vcpkg
         run: vcpkg install argon2:x86-windows
 
-      - name: Configure CMake (Deterministic & Anonymous)
+      - name: Configure CMake
         run: |
           mkdir build && cd build
           cmake .. -A Win32 `
             -DCMAKE_TOOLCHAIN_FILE="$env:VCPKG_INSTALLATION_ROOT/scripts/buildsystems/vcpkg.cmake" `
             -DCMAKE_BUILD_TYPE=Release `
-            -DCMAKE_C_FLAGS="/Brepro" `
-            -DCMAKE_CXX_FLAGS="/Brepro"
+            -DCMAKE_C_FLAGS="/Brepro /EHsc" `
+            -DCMAKE_CXX_FLAGS="/Brepro /EHsc"
 
       - name: Build
         run: cmake --build build --config Release

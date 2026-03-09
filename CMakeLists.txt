@@ -24,13 +24,13 @@ add_library(${PROJECT_NAME} SHARED
     argon2-component.cpp
 )
 
-target_link_libraries(${PROJECT_NAME} PRIVATE
-    OMP-SDK
-    argon2
-)
+target_link_libraries(${PROJECT_NAME} PRIVATE OMP-SDK)
 
 if(WIN32)
-    target_link_libraries(${PROJECT_NAME} PRIVATE bcrypt)
+    find_package(unofficial-argon2 CONFIG REQUIRED)
+    target_link_libraries(${PROJECT_NAME} PRIVATE unofficial::argon2::libargon2 bcrypt)
+else()
+    target_link_libraries(${PROJECT_NAME} PRIVATE argon2)
 endif()
 
 set_target_properties(${PROJECT_NAME} PROPERTIES PREFIX "")
