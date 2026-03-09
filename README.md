@@ -1,6 +1,6 @@
 # open.mp Argon2 Component
 
-An of the Argon2id password hashing algorithm for the open.mp server. 
+An implementation of the Argon2id password hashing algorithm for the open.mp server. 
 
 
 ## Pawn API Reference
