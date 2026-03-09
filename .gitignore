@@ -1,0 +1,23 @@
+build/
+CMakeCache.txt
+CMakeFiles/
+CMakeScripts/ ;
+cmake_install.cmake
+install_manifest.txt ;
+Makefile
+_deps/
+*.o
+*.so
+*.dll
+*.lib
+*.pdb
+*.exp
+.vscode/
+.vs/
+out/
+.idea/
+*.user
+*.sln
+*.vcxproj
+.DS_Store
+Thumbs.db
