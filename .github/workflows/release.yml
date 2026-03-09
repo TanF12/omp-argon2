@@ -61,8 +61,8 @@ jobs:
           cmake .. -A Win32 `
             -DCMAKE_TOOLCHAIN_FILE="$env:VCPKG_INSTALLATION_ROOT/scripts/buildsystems/vcpkg.cmake" `
             -DCMAKE_BUILD_TYPE=Release `
-            -DCMAKE_C_FLAGS="/Brepro /FC-" `
-            -DCMAKE_CXX_FLAGS="/Brepro /FC-"
+            -DCMAKE_C_FLAGS="/Brepro" `
+            -DCMAKE_CXX_FLAGS="/Brepro"
 
       - name: Build
         run: cmake --build build --config Release
