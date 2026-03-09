@@ -28,7 +28,15 @@ static inline bool GenerateSecureSalt(uint8_t* buffer, size_t length) {
     return BCryptGenRandom(NULL, buffer, static_cast<ULONG>(length), BCRYPT_USE_SYSTEM_PREFERRED_RNG) == 0;
 #else
     ssize_t res = getrandom(buffer, length, GRND_NONBLOCK);
-    return res == static_cast<ssize_t>(length);
+    if (res == static_cast<ssize_t>(length)) return true;
+
+    FILE* f = fopen("/dev/urandom", "re");
+    if (f) {
+        bool success = fread(buffer, 1, length, f) == length;
+        fclose(f);
+        return success;
+    }
+    return false;
 #endif
 }
 
@@ -41,6 +49,9 @@ Argon2Component::~Argon2Component() {
     {
         std::lock_guard<std::mutex> lock(taskMutex_);
         stopWorkers_ = true;
+        
+        std::queue<ArgonTask> empty;
+        std::swap(tasks_, empty); 
     }
     cv_.notify_all();
     
@@ -72,6 +83,7 @@ void Argon2Component::workerLoop() {
 
         ArgonResult res;
         res.amx_ = task.amx_;
+        res.amx_generation = task.amx_generation;
         res.isHash = task.isHash;
         res.playerid = task.playerid;
         res.callback = std::move(task.callback);
@@ -181,60 +193,70 @@ void Argon2Component::onFree(IComponent* component) {
 
 void Argon2Component::onAmxLoad(IPawnScript& script) {
     pawn_natives::AmxLoad(script.GetAMX());
+    amxGenerations_[script.GetAMX()] = ++currentGeneration_;
+}
+
+void Argon2Component::onAmxUnload(IPawnScript& script) {
+    AMX* unloadedAmx = script.GetAMX();
+    amxGenerations_.erase(unloadedAmx);
+
+    std::lock_guard<std::mutex> lock(taskMutex_);
+    size_t count = tasks_.size();
+    for (size_t i = 0; i < count; ++i) {
+        ArgonTask t = std::move(tasks_.front());
+        tasks_.pop();
+        if (t.amx_ != unloadedAmx) {
+            tasks_.push(std::move(t));
+        }
+    }
 }
 
 void Argon2Component::onTick(Microseconds elapsed, TimePoint now) {
     if (!pawn_) return;
 
-    std::vector<ArgonResult> batch;
+    std::queue<ArgonResult> batch;
     {
-        std::lock_guard<SpinLock> lock(resultSpinLock_); 
-        while (!results_.empty()) {
-            batch.push_back(std::move(results_.front()));
-            results_.pop();
-        }
+        std::lock_guard<SpinLock> lock(resultSpinLock_);
+        if (results_.empty()) return; 
+        batch.swap(results_);
     }
 
-    for (auto& res : batch) {
-        bool amxValid = false;
-        if (pawn_->mainScript() && pawn_->mainScript()->GetAMX() == res.amx_) amxValid = true;
-        if (!amxValid) {
-            for (IPawnScript* script : pawn_->sideScripts()) {
-                if (script->GetAMX() == res.amx_) {
-                    amxValid = true;
-                    break;
-                }
-            }
+    while (!batch.empty()) {
+        ArgonResult res = std::move(batch.front());
+        batch.pop();
+
+        auto it = amxGenerations_.find(res.amx_);
+        if (it == amxGenerations_.end() || it->second != res.amx_generation) {
+            continue;
         }
 
-        if (amxValid) {
-            AMX* amx = res.amx_;
-            int index;
-            if (amx_FindPublic(amx, res.callback.c_str(), &index) == AMX_ERR_NONE) {
-                cell old_hea = amx->hea;
+        AMX* amx = res.amx_;
+        int index;
 
-                for (auto it = res.args.rbegin(); it != res.args.rend(); ++it) {
-                    if (it->type == CallbackArg::Type::String) {
-                        cell amx_addr, *phys_addr;
-                        amx_PushString(amx, &amx_addr, &phys_addr, it->stringValue.c_str(), 0, 0);
-                    } else {
-                        amx_Push(amx, it->cellValue);
-                    }
-                }
+        if (amx_FindPublic(amx, res.callback.c_str(), &index) == AMX_ERR_NONE) {
+            cell old_hea = amx->hea;
 
-                if (res.isHash) {
+            for (auto arg_it = res.args.rbegin(); arg_it != res.args.rend(); ++arg_it) {
+                if (arg_it->type == CallbackArg::Type::String) {
                     cell amx_addr, *phys_addr;
-                    amx_PushString(amx, &amx_addr, &phys_addr, res.success ? res.hash.c_str() : "", 0, 0);
+                    amx_PushString(amx, &amx_addr, &phys_addr, arg_it->stringValue.c_str(), 0, 0);
+                } else {
+                    amx_Push(amx, arg_it->cellValue);
                 }
-
-                amx_Push(amx, res.success ? 1 : 0);
-                amx_Push(amx, res.playerid);
-
-                cell retval;
-                amx_Exec(amx, &retval, index);
-
-                amx->hea = old_hea; 
             }
+
+            if (res.isHash) {
+                cell amx_addr, *phys_addr;
+                amx_PushString(amx, &amx_addr, &phys_addr, res.success ? res.hash.c_str() : "", 0, 0);
+            }
+
+            amx_Push(amx, res.success ? 1 : 0);
+            amx_Push(amx, res.playerid);
+
+            cell retval;
+            amx_Exec(amx, &retval, index);
+
+            amx->hea = old_hea;
         }
     }
 }

@@ -20,14 +20,15 @@ SCRIPT_API(argon2_hash, bool(int playerid, const std::string& callback, const st
     int param_idx = 8; 
     int num_args = params[0] / sizeof(cell);
 
+    task.args.reserve(format.size());
     for (char c : format) {
-        if (param_idx > num_args) break; 
+        if (param_idx > num_args) break;
+        if (c != 'd' && c != 'i' && c != 'f' && c != 's') continue;
 
         CallbackArg arg;
         
         cell param_val = params[param_idx++]; 
-        cell* phys_addr;        
-        amx_GetAddr(amx, param_val, &phys_addr); 
+        cell* phys_addr = nullptr;        
 
         if (c == 'd' || c == 'i' || c == 'f') {
             arg.type = (c == 'f') ? CallbackArg::Type::Float : CallbackArg::Type::Int;
@@ -37,8 +38,9 @@ SCRIPT_API(argon2_hash, bool(int playerid, const std::string& callback, const st
             int len;
             amx_StrLen(phys_addr, &len);
             
-            arg.stringValue.assign(len, '\0');
+            arg.stringValue.resize(len + 1);
             amx_GetString(arg.stringValue.data(), phys_addr, 0, len + 1);
+            arg.stringValue.pop_back();
         } else {
             continue;
         }
@@ -46,6 +48,7 @@ SCRIPT_API(argon2_hash, bool(int playerid, const std::string& callback, const st
     }
 
     if (auto comp = Argon2Component::getInstance()) {
+        task.amx_generation = comp->getAmxGeneration(amx);
         comp->enqueueTask(std::move(task));
         return true;
     }
@@ -75,9 +78,8 @@ SCRIPT_API(argon2_verify, bool(int playerid, const std::string& callback, const 
 
         CallbackArg arg;
         
-        cell param_val = params[param_idx++]; 
-        cell* phys_addr;        
-        amx_GetAddr(amx, param_val, &phys_addr);
+        cell param_val = params[param_idx++];
+        cell* phys_addr = nullptr;
 
         if (c == 'd' || c == 'i' || c == 'f') {
             arg.type = (c == 'f') ? CallbackArg::Type::Float : CallbackArg::Type::Int;
@@ -87,8 +89,9 @@ SCRIPT_API(argon2_verify, bool(int playerid, const std::string& callback, const 
             int len;
             amx_StrLen(phys_addr, &len);
             
-            arg.stringValue.assign(len, '\0');
+            arg.stringValue.resize(len + 1);
             amx_GetString(arg.stringValue.data(), phys_addr, 0, len + 1);
+            arg.stringValue.pop_back();
         } else {
             continue;
         }
@@ -96,6 +99,7 @@ SCRIPT_API(argon2_verify, bool(int playerid, const std::string& callback, const 
     }
 
     if (auto comp = Argon2Component::getInstance()) {
+        task.amx_generation = comp->getAmxGeneration(amx);
         comp->enqueueTask(std::move(task));
         return true;
     }

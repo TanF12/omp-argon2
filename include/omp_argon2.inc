@@ -12,7 +12,7 @@
 #endif
 
 /*
-argon2_hash(playerid, const callback[], const input[], time_cost, memory_cost, parallelism, const args[] = "", {Float, _}:...)
+argon2_hash(playerid, const callback[], const input[], time_cost, memory_cost, parallelism, const format[] = "", {Float, _}:...)
 	Params:
 		`playerid` - ID of the player
 		`callback[]` - Callback to be called after the hashing process
@@ -20,26 +20,28 @@ argon2_hash(playerid, const callback[], const input[], time_cost, memory_cost, p
 		`time_cost` - time iterations (e.g.: 2)
 		`memory_cost` - memory use in kilobytes (ex: 65536 for 64MB)
 		`parallelism` - number of Argon2 threads (ex: 1)
-		`args[]` - custom arguments to be passed
+		`format[]` - format string for custom arguments (e.g., "ids")
+		`...` - custom arguments to be passed
 		
 	Expected Callback:
 		forward OnPasswordHashed(playerid, bool:success, const hash[], args...);
 */
-native argon2_hash(playerid, const callback[], const input[], time_cost, memory_cost, parallelism, const args[] = "", {Float, _}:...);
+native argon2_hash(playerid, const callback[], const input[], time_cost, memory_cost, parallelism, const format[] = "", {Float, _}:...);
 
 /*
-argon2_verify(playerid, const callback[], const input[], const hash[], const args[] = "", {Float, _}:...)
+argon2_verify(playerid, const callback[], const input[], const hash[], const format[] = "", {Float, _}:...)
 	Params:
 		`playerid` - ID of the player
 		`callback[]` - Callback to be called after verifying
 		`input[]` - Plaintext password to be compared
 		`hash[]` - Stored hash to be compared
-		`args[]` - Custom arguments
+		`format[]` - Format string for custom arguments
+		`...` - Custom arguments
 		
 	Expected Callback:
 		forward OnPasswordVerified(playerid, bool:success, args...);
 */
-native argon2_verify(playerid, const callback[], const input[], const hash[], const args[] = "", {Float, _}:...);
+native argon2_verify(playerid, const callback[], const input[], const hash[], const format[] = "", {Float, _}:...);
 
 /*
 argon2_set_thread_limit(value)

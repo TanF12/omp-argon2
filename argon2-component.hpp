@@ -9,6 +9,7 @@
 #include <vector>
 #include <string>
 #include <atomic>
+#include <unordered_map>
 #include "argon2-utils.hpp"
 
 struct CallbackArg {
@@ -19,6 +20,7 @@ struct CallbackArg {
 
 struct ArgonTask {
     AMX* amx_ = nullptr;
+    uint64_t amx_generation = 0;
     bool isHash = false;
     int playerid = -1;
     std::string callback;
@@ -32,6 +34,7 @@ struct ArgonTask {
 
 struct ArgonResult {
     AMX* amx_ = nullptr;
+    uint64_t amx_generation = 0;
     bool isHash = false;
     int playerid = -1;
     std::string callback;
@@ -66,6 +69,16 @@ private:
 
     void workerLoop();
 
+private:
+    std::unordered_map<AMX*, uint64_t> amxGenerations_;
+    uint64_t currentGeneration_ = 0;
+
+public:
+    uint64_t getAmxGeneration(AMX* amx) {
+        auto it = amxGenerations_.find(amx);
+        return (it != amxGenerations_.end()) ? it->second : 0;
+    }
+
 public:
     PROVIDE_UID(0x34D89EC50658252C);
 
@@ -78,7 +91,7 @@ public:
     void setThreadLimit(size_t limit);
 
     StringView componentName() const override { return "open.mp Argon2 Component"; }
-    SemanticVersion componentVersion() const override { return SemanticVersion(0, 1, 0, 0); }
+    SemanticVersion componentVersion() const override { return SemanticVersion(0, 1, 1, 2); }
 
     void onLoad(ICore* c) override;
     void onInit(IComponentList* components) override;
@@ -88,7 +101,7 @@ public:
     void reset() override {}
 
     void onAmxLoad(IPawnScript& script) override;
-    void onAmxUnload(IPawnScript& script) override {}
+    void onAmxUnload(IPawnScript& script) override;
 
     void onTick(Microseconds elapsed, TimePoint now) override;
 };

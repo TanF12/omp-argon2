@@ -1,5 +1,6 @@
 #pragma once
 #include <atomic>
+#include <thread>
 
 #if defined(__i386__) || defined(__x86_64__)
     #include <immintrin.h>
@@ -11,14 +12,22 @@
 #endif
 
 class SpinLock {
-    std::atomic_flag locked = ATOMIC_FLAG_INIT;
+    std::atomic<bool> locked{false};
 public:
     inline void lock() {
-        while (locked.test_and_set(std::memory_order_acquire)) {
-            SPIN_HINT();
+        int spins = 0;
+        while (locked.exchange(true, std::memory_order_acquire)) {
+            while (locked.load(std::memory_order_relaxed)) {
+                if (spins < 10) {
+                    SPIN_HINT();
+                    ++spins;
+                } else {
+                    std::this_thread::yield();
+                }
+            }
         }
     }
     inline void unlock() {
-        locked.clear(std::memory_order_release);
+        locked.store(false, std::memory_order_release);
     }
 };
