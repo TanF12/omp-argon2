@@ -91,7 +91,7 @@ public:
     void setThreadLimit(size_t limit);
 
     StringView componentName() const override { return "open.mp Argon2 Component"; }
-    SemanticVersion componentVersion() const override { return SemanticVersion(0, 1, 1, 2); }
+    SemanticVersion componentVersion() const override { return SemanticVersion(0, 1, 1, 3); }
 
     void onLoad(ICore* c) override;
     void onInit(IComponentList* components) override;
