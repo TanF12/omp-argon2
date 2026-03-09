@@ -16,3 +16,4 @@ native argon2_verify(playerid, const callback[], const input[], const hash[], co
 
 // Adjusts the maximum number of background worker threads. Must be called before tasks are enqueued.
 native argon2_set_thread_limit(value);
+```

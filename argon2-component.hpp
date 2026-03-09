@@ -67,7 +67,7 @@ private:
     void workerLoop();
 
 public:
-    PROVIDE_UID(0xA1B2C3D4E5F60708);
+    PROVIDE_UID(0x34D89EC50658252C);
 
     Argon2Component();
     ~Argon2Component();
