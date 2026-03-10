@@ -26,13 +26,15 @@ SCRIPT_API(argon2_hash, bool(int playerid, const std::string& callback, const st
         if (c != 'd' && c != 'i' && c != 'f' && c != 's') continue;
 
         CallbackArg arg;
-        
         cell param_val = params[param_idx++]; 
-        cell* phys_addr = nullptr;        
+        cell* phys_addr = nullptr;
+        amx_GetAddr(amx, param_val, &phys_addr);
+
+        if (phys_addr == nullptr) continue;
 
         if (c == 'd' || c == 'i' || c == 'f') {
             arg.type = (c == 'f') ? CallbackArg::Type::Float : CallbackArg::Type::Int;
-            arg.cellValue = *phys_addr; 
+            arg.cellValue = *phys_addr;
         } else if (c == 's') {
             arg.type = CallbackArg::Type::String;
             int len;
@@ -41,8 +43,6 @@ SCRIPT_API(argon2_hash, bool(int playerid, const std::string& callback, const st
             arg.stringValue.resize(len + 1);
             amx_GetString(arg.stringValue.data(), phys_addr, 0, len + 1);
             arg.stringValue.pop_back();
-        } else {
-            continue;
         }
         task.args.push_back(std::move(arg));
     }
@@ -77,13 +77,16 @@ SCRIPT_API(argon2_verify, bool(int playerid, const std::string& callback, const 
         if (param_idx > num_args) break;
 
         CallbackArg arg;
-        
         cell param_val = params[param_idx++];
         cell* phys_addr = nullptr;
 
+        amx_GetAddr(amx, param_val, &phys_addr);
+
+        if (phys_addr == nullptr) continue;
+
         if (c == 'd' || c == 'i' || c == 'f') {
             arg.type = (c == 'f') ? CallbackArg::Type::Float : CallbackArg::Type::Int;
-            arg.cellValue = *phys_addr; 
+            arg.cellValue = *phys_addr;
         } else if (c == 's') {
             arg.type = CallbackArg::Type::String;
             int len;
@@ -92,8 +95,6 @@ SCRIPT_API(argon2_verify, bool(int playerid, const std::string& callback, const 
             arg.stringValue.resize(len + 1);
             amx_GetString(arg.stringValue.data(), phys_addr, 0, len + 1);
             arg.stringValue.pop_back();
-        } else {
-            continue;
         }
         task.args.push_back(std::move(arg));
     }
