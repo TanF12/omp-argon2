@@ -37,7 +37,7 @@ jobs:
           dnf -y install gcc gcc-c++ make cmake git glibc-devel.i686 libstdc++-devel.i686 libstdc++-static.i686 libstdc++-static binutils wget
           
           for d in /usr/include/c++/*; do
-            if[ -d "$d" ]; then
+            if [ -d "$d" ]; then
               for lib32 in "$d"/i*86-redhat-linux*; do
                 if [ -d "$lib32/bits" ]; then
                   mkdir -p "$d/x86_64-redhat-linux/32"
@@ -60,7 +60,7 @@ jobs:
           git clone https://github.com/P-H-C/phc-winner-argon2.git /tmp/argon2
           cd /tmp/argon2
           make OPTTARGET=none CC="gcc -m32"
-          
+
           mkdir -p /usr/include /usr/lib /usr/lib32 /usr/lib/i386-linux-gnu
           cp include/argon2.h /usr/include/
           cp libargon2.a /usr/lib/
@@ -75,6 +75,7 @@ jobs:
       - name: Workaround GCC 8 C++17 bug (CentOS)
         if: matrix.os == 'centos'
         run: |
+        
           find . -type f \( -name "*.cpp" -o -name "*.hpp" -o -name "*.h" -o -name "*.c" \) -exec sed -i 's/\[\[maybe_unused\]\]//g' {} +
 
       - name: Configure CMake
@@ -136,7 +137,7 @@ jobs:
 
   publish-release:
     name: Publish GitHub Release
-    needs:[build-linux, build-windows]
+    needs: [build-linux, build-windows]
     runs-on: ubuntu-latest
     permissions:
       contents: write
