@@ -39,7 +39,7 @@ jobs:
           for d in /usr/include/c++/*; do
             if [ -d "$d" ]; then
               for lib32 in "$d"/i*86-redhat-linux*; do
-                if [ -d "$lib32/bits" ]; then
+                if[ -d "$lib32/bits" ]; then
                   mkdir -p "$d/x86_64-redhat-linux/32"
                   cp -r "$lib32/bits" "$d/x86_64-redhat-linux/32/"
                 fi
@@ -78,8 +78,9 @@ jobs:
           cmake .. \
             -DCMAKE_POLICY_VERSION_MINIMUM=3.5 \
             -DCMAKE_BUILD_TYPE=Release \
+            -DCMAKE_CXX_STANDARD=17 \
             -DCMAKE_C_FLAGS="-m32 -fmacro-prefix-map=${{ github.workspace }}=. -ffile-prefix-map=${{ github.workspace }}=. -Wno-builtin-macro-redefined -U__DATE__ -U__TIME__" \
-            -DCMAKE_CXX_FLAGS="-m32 -fmacro-prefix-map=${{ github.workspace }}=. -ffile-prefix-map=${{ github.workspace }}=. -Wno-builtin-macro-redefined -U__DATE__ -U__TIME__" \
+            -DCMAKE_CXX_FLAGS="-std=c++17 -m32 -fmacro-prefix-map=${{ github.workspace }}=. -ffile-prefix-map=${{ github.workspace }}=. -Wno-builtin-macro-redefined -U__DATE__ -U__TIME__" \
             -DCMAKE_SHARED_LINKER_FLAGS="-m32 -Wl,--build-id=none -static-libgcc -static-libstdc++"
 
       - name: Build
@@ -113,6 +114,7 @@ jobs:
           mkdir build && cd build
           cmake .. -A Win32 `
             -DCMAKE_POLICY_VERSION_MINIMUM=3.5 `
+            -DCMAKE_CXX_STANDARD=17 `
             -DCMAKE_TOOLCHAIN_FILE="$env:VCPKG_INSTALLATION_ROOT/scripts/buildsystems/vcpkg.cmake" `
             -DCMAKE_BUILD_TYPE=Release `
             -DCMAKE_C_FLAGS="/Brepro /EHsc" `
