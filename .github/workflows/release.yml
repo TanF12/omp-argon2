@@ -16,34 +16,40 @@ jobs:
         include:
           - os: debian
             container: debian:12
-            setup: |
-              dpkg --add-architecture i386
-              apt-get update
-              apt-get install -y gcc-multilib g++-multilib cmake make git binutils wget
           - os: centos
             container: almalinux:8
-            setup: |
-              dnf -y install epel-release dnf-plugins-core
-              /usr/bin/crb enable || dnf config-manager --set-enabled powertools || true
-              dnf -y install gcc gcc-c++ make cmake git glibc-devel.i686 libstdc++-devel.i686 libstdc++-static.i686 libstdc++-static binutils wget
-              
-              for d in /usr/include/c++/*; do
-                if[ -d "$d/x86_64-redhat-linux" ] && [ -d "$d/i686-redhat-linux" ]; then
-                  rm -rf "$d/x86_64-redhat-linux/32"
-                  ln -s "$d/i686-redhat-linux" "$d/x86_64-redhat-linux/32"
-                fi
-              done
           - os: arch
             container: archlinux:base
-            setup: |
-              echo "[multilib]" >> /etc/pacman.conf
-              echo "Include = /etc/pacman.d/mirrorlist" >> /etc/pacman.conf
-              pacman -Sy --noconfirm archlinux-keyring
-              pacman -Syu --noconfirm gcc-multilib lib32-glibc lib32-gcc-libs cmake make git binutils wget
 
     steps:
-      - name: Install System Dependencies
-        run: ${{ matrix.setup }}
+      - name: Install System Dependencies (Debian)
+        if: matrix.os == 'debian'
+        run: |
+          dpkg --add-architecture i386
+          apt-get update
+          apt-get install -y gcc-multilib g++-multilib cmake make git binutils wget
+
+      - name: Install System Dependencies (CentOS)
+        if: matrix.os == 'centos'
+        run: |
+          dnf -y install epel-release dnf-plugins-core
+          /usr/bin/crb enable || dnf config-manager --set-enabled powertools || true
+          dnf -y install gcc gcc-c++ make cmake git glibc-devel.i686 libstdc++-devel.i686 libstdc++-static.i686 libstdc++-static binutils wget
+          
+          for d in /usr/include/c++/*; do
+            if [ -d "$d/x86_64-redhat-linux" ] &&[ -d "$d/i686-redhat-linux" ]; then
+              rm -rf "$d/x86_64-redhat-linux/32"
+              ln -s "$d/i686-redhat-linux" "$d/x86_64-redhat-linux/32"
+            fi
+          done
+
+      - name: Install System Dependencies (Arch)
+        if: matrix.os == 'arch'
+        run: |
+          echo "[multilib]" >> /etc/pacman.conf
+          echo "Include = /etc/pacman.d/mirrorlist" >> /etc/pacman.conf
+          pacman -Sy --noconfirm archlinux-keyring
+          pacman -Syu --noconfirm gcc-multilib lib32-glibc lib32-gcc-libs cmake make git binutils wget
 
       - name: Build and Install Static Argon2 (x86)
         run: |
@@ -115,7 +121,7 @@ jobs:
 
   publish-release:
     name: Publish GitHub Release
-    needs:[build-linux, build-windows]
+    needs: [build-linux, build-windows]
     runs-on: ubuntu-latest
     permissions:
       contents: write
