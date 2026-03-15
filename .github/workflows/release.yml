@@ -37,9 +37,9 @@ jobs:
           dnf -y install gcc gcc-c++ make cmake git glibc-devel.i686 libstdc++-devel.i686 libstdc++-static.i686 libstdc++-static binutils wget
           
           for d in /usr/include/c++/*; do
-            if [ -d "$d" ]; then
+            if[ -d "$d" ]; then
               for lib32 in "$d"/i*86-redhat-linux*; do
-                if[ -d "$lib32/bits" ]; then
+                if [ -d "$lib32/bits" ]; then
                   mkdir -p "$d/x86_64-redhat-linux/32"
                   cp -r "$lib32/bits" "$d/x86_64-redhat-linux/32/"
                 fi
@@ -71,6 +71,11 @@ jobs:
         uses: actions/checkout@v4
         with:
           submodules: recursive
+
+      - name: Workaround GCC 8 C++17 bug (CentOS)
+        if: matrix.os == 'centos'
+        run: |
+          find . -type f \( -name "*.cpp" -o -name "*.hpp" -o -name "*.h" -o -name "*.c" \) -exec sed -i 's/\[\[maybe_unused\]\]//g' {} +
 
       - name: Configure CMake
         run: |
@@ -131,7 +136,7 @@ jobs:
 
   publish-release:
     name: Publish GitHub Release
-    needs: [build-linux, build-windows]
+    needs:[build-linux, build-windows]
     runs-on: ubuntu-latest
     permissions:
       contents: write
