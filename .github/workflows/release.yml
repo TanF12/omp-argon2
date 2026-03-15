@@ -24,11 +24,11 @@ jobs:
             container: almalinux:8
             setup: |
               dnf -y install epel-release dnf-plugins-core
-              dnf config-manager --set-enabled powertools || dnf config-manager --set-enabled PowerTools || true
-              dnf -y --enablerepo=powertools,PowerTools install gcc gcc-c++ make cmake git glibc-devel.i686 libstdc++-devel.i686 libstdc++-static.i686 libstdc++-static binutils wget
+              /usr/bin/crb enable || dnf config-manager --set-enabled powertools || true
+              dnf -y install gcc gcc-c++ make cmake git glibc-devel.i686 libstdc++-devel.i686 libstdc++-static.i686 libstdc++-static binutils wget
               
               for d in /usr/include/c++/*; do
-                if[ -d "$d/x86_64-redhat-linux" ] &&[ -d "$d/i686-redhat-linux" ]; then
+                if[ -d "$d/x86_64-redhat-linux" ] && [ -d "$d/i686-redhat-linux" ]; then
                   rm -rf "$d/x86_64-redhat-linux/32"
                   ln -s "$d/i686-redhat-linux" "$d/x86_64-redhat-linux/32"
                 fi
@@ -62,6 +62,7 @@ jobs:
         run: |
           mkdir build && cd build
           cmake .. \
+            -DCMAKE_POLICY_VERSION_MINIMUM=3.5 \
             -DCMAKE_BUILD_TYPE=Release \
             -DCMAKE_C_FLAGS="-m32 -fmacro-prefix-map=${{ github.workspace }}=. -ffile-prefix-map=${{ github.workspace }}=. -Wno-builtin-macro-redefined -U__DATE__ -U__TIME__" \
             -DCMAKE_CXX_FLAGS="-m32 -fmacro-prefix-map=${{ github.workspace }}=. -ffile-prefix-map=${{ github.workspace }}=. -Wno-builtin-macro-redefined -U__DATE__ -U__TIME__" \
@@ -97,6 +98,7 @@ jobs:
         run: |
           mkdir build && cd build
           cmake .. -A Win32 `
+            -DCMAKE_POLICY_VERSION_MINIMUM=3.5 `
             -DCMAKE_TOOLCHAIN_FILE="$env:VCPKG_INSTALLATION_ROOT/scripts/buildsystems/vcpkg.cmake" `
             -DCMAKE_BUILD_TYPE=Release `
             -DCMAKE_C_FLAGS="/Brepro /EHsc" `
@@ -113,7 +115,7 @@ jobs:
 
   publish-release:
     name: Publish GitHub Release
-    needs: [build-linux, build-windows]
+    needs:[build-linux, build-windows]
     runs-on: ubuntu-latest
     permissions:
       contents: write
