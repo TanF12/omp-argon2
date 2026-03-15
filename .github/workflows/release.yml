@@ -37,9 +37,13 @@ jobs:
           dnf -y install gcc gcc-c++ make cmake git glibc-devel.i686 libstdc++-devel.i686 libstdc++-static.i686 libstdc++-static binutils wget
           
           for d in /usr/include/c++/*; do
-            if [ -d "$d/x86_64-redhat-linux" ] &&[ -d "$d/i686-redhat-linux" ]; then
-              rm -rf "$d/x86_64-redhat-linux/32"
-              ln -s "$d/i686-redhat-linux" "$d/x86_64-redhat-linux/32"
+            if [ -d "$d" ]; then
+              for lib32 in "$d"/i*86-redhat-linux*; do
+                if [ -d "$lib32/bits" ]; then
+                  mkdir -p "$d/x86_64-redhat-linux/32"
+                  cp -r "$lib32/bits" "$d/x86_64-redhat-linux/32/"
+                fi
+              done
             fi
           done
 
@@ -55,10 +59,14 @@ jobs:
         run: |
           git clone https://github.com/P-H-C/phc-winner-argon2.git /tmp/argon2
           cd /tmp/argon2
-          make OPTTARGET=none CC="gcc -m32" PREFIX=/usr
-          make install PREFIX=/usr
-          rm -f /usr/lib/libargon2.so* /usr/lib*/libargon2.so* /usr/lib/*/*/libargon2.so* || true
-
+          make OPTTARGET=none CC="gcc -m32"
+          
+          mkdir -p /usr/include /usr/lib /usr/lib32 /usr/lib/i386-linux-gnu
+          cp include/argon2.h /usr/include/
+          cp libargon2.a /usr/lib/
+          cp libargon2.a /usr/lib32/
+          cp libargon2.a /usr/lib/i386-linux-gnu/
+          
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
