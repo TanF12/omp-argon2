@@ -59,7 +59,7 @@ jobs:
         run: |
           git clone https://github.com/P-H-C/phc-winner-argon2.git /tmp/argon2
           cd /tmp/argon2
-          make OPTTARGET=none CC="gcc -m32"
+          make OPTTARGET=none CC="gcc -m32 -fPIC"
 
           mkdir -p /usr/include /usr/lib /usr/lib32 /usr/lib/i386-linux-gnu
           cp include/argon2.h /usr/include/
@@ -75,7 +75,6 @@ jobs:
       - name: Workaround GCC 8 C++17 bug (CentOS)
         if: matrix.os == 'centos'
         run: |
-        
           find . -type f \( -name "*.cpp" -o -name "*.hpp" -o -name "*.h" -o -name "*.c" \) -exec sed -i 's/\[\[maybe_unused\]\]//g' {} +
 
       - name: Configure CMake
@@ -113,7 +112,7 @@ jobs:
           submodules: recursive
 
       - name: Install Argon2 via vcpkg
-        run: vcpkg install argon2:x86-windows
+        run: vcpkg install argon2:x86-windows-static-md
 
       - name: Configure CMake
         run: |
@@ -121,6 +120,7 @@ jobs:
           cmake .. -A Win32 `
             -DCMAKE_POLICY_VERSION_MINIMUM=3.5 `
             -DCMAKE_CXX_STANDARD=17 `
+            -DVCPKG_TARGET_TRIPLET=x86-windows-static-md `
             -DCMAKE_TOOLCHAIN_FILE="$env:VCPKG_INSTALLATION_ROOT/scripts/buildsystems/vcpkg.cmake" `
             -DCMAKE_BUILD_TYPE=Release `
             -DCMAKE_C_FLAGS="/Brepro /EHsc" `

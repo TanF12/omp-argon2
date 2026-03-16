@@ -3,31 +3,23 @@
 #include <Server/Components/Pawn/Impl/pawn_natives.hpp>
 #include <Server/Components/Pawn/Impl/pawn_impl.hpp>
 #include <argon2.h>
+#include <string>
 #include <algorithm>
+#include <cstdio>
+#include <cstring>
 
 #if defined(_WIN32)
     #include <windows.h>
     #include <bcrypt.h>
 #else
     #include <sys/random.h>
-    #include <string.h>     
 #endif
-
-static inline void SecureWipeString(std::string& str) {
-    if (str.empty()) return;
-#if defined(_WIN32)
-    SecureZeroMemory(str.data(), str.size());
-#else
-    explicit_bzero(str.data(), str.size());
-#endif
-    str.clear();
-}
 
 static inline bool GenerateSecureSalt(uint8_t* buffer, size_t length) {
 #if defined(_WIN32)
     return BCryptGenRandom(NULL, buffer, static_cast<ULONG>(length), BCRYPT_USE_SYSTEM_PREFERRED_RNG) == 0;
 #else
-    ssize_t res = getrandom(buffer, length, GRND_NONBLOCK);
+    ssize_t res = getrandom(buffer, length, 0); 
     if (res == static_cast<ssize_t>(length)) return true;
 
     FILE* f = fopen("/dev/urandom", "re");
@@ -106,7 +98,7 @@ void Argon2Component::workerLoop() {
 
                 if (ret == ARGON2_OK) {
                     res.success = true;
-                    encoded.erase(std::find(encoded.begin(), encoded.end(), '\0'), encoded.end());
+                    encoded.resize(strlen(encoded.data()));
                     res.hash = std::move(encoded);
                 }
 #if defined(_WIN32)
@@ -119,8 +111,6 @@ void Argon2Component::workerLoop() {
             int ret = argon2id_verify(task.hash.c_str(), task.input.data(), task.input.size());
             res.success = (ret == ARGON2_OK);
         }
-
-        SecureWipeString(task.input);
 
         {
             std::lock_guard<SpinLock> lock(resultSpinLock_); 
@@ -137,15 +127,15 @@ void Argon2Component::enqueueTask(ArgonTask task) {
     cv_.notify_one();
 }
 
-void Argon2Component::setThreadLimit(size_t limit) {
-    if (limit < 1 || limit == threadLimit_) return;
+bool Argon2Component::setThreadLimit(size_t limit) {
+    if (limit < 1 || limit == threadLimit_) return true;
 
     {
         std::lock_guard<std::mutex> lock(taskMutex_);
         
-        if (!tasks_.empty() || activeWorkers_ > 0) {
+        if (!tasks_.empty() || activeWorkers_.load(std::memory_order_relaxed) > 0) {
             if (core_) core_->printLn("[Argon2] Cannot change thread limit while tasks are running. Call this in OnGameModeInit.");
-            return;
+            return false;
         }
 
         stopWorkers_ = true;
@@ -165,6 +155,7 @@ void Argon2Component::setThreadLimit(size_t limit) {
             workers_.emplace_back(&Argon2Component::workerLoop, this);
         }
     }
+    return true;
 }
 
 void Argon2Component::onLoad(ICore* c) {

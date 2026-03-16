@@ -24,7 +24,7 @@ struct ArgonTask {
     bool isHash = false;
     int playerid = -1;
     std::string callback;
-    std::string input;
+    SecureString input;
     std::string hash;
     uint32_t t_cost = 0;
     uint32_t m_cost = 0;
@@ -57,14 +57,14 @@ private:
     std::queue<ArgonResult> results_;
     
     std::mutex taskMutex_;
-    SpinLock resultSpinLock_;
     std::condition_variable cv_;
     
-    bool stopWorkers_ = false;
+    alignas(CACHE_LINE) SpinLock resultSpinLock_;
+    alignas(CACHE_LINE) std::atomic<int> activeWorkers_{0};
+    alignas(CACHE_LINE) bool stopWorkers_ = false;
+
     size_t threadLimit_ = 0; 
     
-    std::atomic<int> activeWorkers_{0};
-
     inline static Argon2Component* instance_ = nullptr;
 
     void workerLoop();
@@ -88,10 +88,10 @@ public:
     static Argon2Component* getInstance();
 
     void enqueueTask(ArgonTask task);
-    void setThreadLimit(size_t limit);
+    bool setThreadLimit(size_t limit);
 
     StringView componentName() const override { return "open.mp Argon2 Component"; }
-    SemanticVersion componentVersion() const override { return SemanticVersion(0, 1, 1, 3); }
+    SemanticVersion componentVersion() const override { return SemanticVersion(0, 2, 0, 0); }
 
     void onLoad(ICore* c) override;
     void onInit(IComponentList* components) override;
